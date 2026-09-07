@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+build/
+dist/
+*.egg-info/
+.installed.packages
+venv/
+env/
+.env
+
+# Models (large binary files)
+backend/models/**
+!backend/models/**/.gitkeep
+backend/models/**/*.h5
+backend/models/**/*.keras
+backend/models/**/*.pb
+backend/models/**/*.weights
+!backend/models/**/.gitkeep
+
+# Datasets (medical data - never commit)
+datasets/pancreas-ct/
+datasets/classification/
+datasets/processed/
+/pancreas_ct/
+
+# Uploads and outputs
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/outputs/*
+!backend/outputs/.gitkeep
+training/outputs/*
+!training/outputs/.gitkeep
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Misc
+*.tmp
+*.bak
