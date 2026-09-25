@@ -248,7 +248,7 @@ def evaluate_classifier(
         "classification_report": report,
         "_fpr": fpr.tolist() if fpr is not None else None,
         "_tpr": tpr.tolist() if tpr is not None else None,
-        "num_test_samples": len(images),
+        "num_test_samples": num_test_samples,
         "classes": config.classes,
     }
 
@@ -278,36 +278,86 @@ def evaluate_segmenter(
     input_size_wh = (config.input_size[1], config.input_size[0])  # for cv2
 
     logger.info(f"Loading segmentation test data from {test_data_dir}")
-    images, masks = _load_segmentation_test_data(test_data_dir, input_size_wh)
 
-    logger.info(f"Running segmentation on {len(images)} images ...")
-    preds = model.predict(images, batch_size=4, verbose=0)  # shape (N, H, W, 1)
-    preds_binary = (preds > 0.5).astype(np.float32)
+    data_dir = Path(test_data_dir)
+    img_dir = data_dir / "images"
+    mask_dir = data_dir / "masks"
 
+    img_paths = sorted(img_dir.glob("*.png"))
+    if not img_paths:
+        raise ValueError(f"No test images found in {img_dir}")
+
+    # Process one image at a time to avoid loading the entire test set into RAM.
+    batch_size = 1
     smooth = 1e-6
-    dice_scores: list[float] = []
-    iou_scores: list[float] = []
+    dice_scores = []
+    iou_scores = []
+    num_test_samples = 0
 
-    for pred, mask in zip(preds_binary, masks):
-        pred_flat = pred.flatten()
-        mask_flat = mask.flatten()
-        intersection = float(np.sum(pred_flat * mask_flat))
-        union = float(np.sum(pred_flat) + np.sum(mask_flat) - intersection)
-        dice = (2.0 * intersection + smooth) / (float(np.sum(pred_flat)) + float(np.sum(mask_flat)) + smooth)
+    logger.info(
+        f"Running segmentation on {len(img_paths)} images "
+        f"one at a time to limit memory usage..."
+    )
+
+    for img_path in img_paths:
+        mask_path = mask_dir / img_path.name
+
+        if not mask_path.exists():
+            logger.warning(f"Missing mask for {img_path.name}, skipping")
+            continue
+
+        img = cv2.imread(str(img_path), cv2.IMREAD_GRAYSCALE)
+        mask = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
+
+        if img is None or mask is None:
+            logger.warning(f"Could not read {img_path.name}, skipping")
+            continue
+
+        img = cv2.resize(img, input_size_wh)
+        mask = cv2.resize(mask, input_size_wh)
+
+        image = (img.astype(np.float32) / 255.0)[np.newaxis, ..., np.newaxis]
+        mask = ((mask > 127).astype(np.float32))[np.newaxis, ..., np.newaxis]
+
+        pred = model.predict(image, batch_size=batch_size, verbose=0)
+        pred = (pred > 0.5).astype(np.float32)
+
+        pred_flat = pred[0].reshape(-1)
+        mask_flat = mask[0].reshape(-1)
+
+        intersection = np.sum(pred_flat * mask_flat)
+        dice = (2.0 * intersection + smooth) / (
+            np.sum(pred_flat) + np.sum(mask_flat) + smooth
+        )
+
+        union = np.sum(pred_flat) + np.sum(mask_flat) - intersection
         iou = (intersection + smooth) / (union + smooth)
-        dice_scores.append(dice)
-        iou_scores.append(iou)
+
+        dice_scores.append(float(dice))
+        iou_scores.append(float(iou))
+        num_test_samples += 1
+
+        if num_test_samples % 250 == 0:
+            logger.info(
+                f"Processed {num_test_samples}/{len(img_paths)} test images"
+            )
+
+    if num_test_samples == 0:
+        raise ValueError("No valid test image/mask pairs were processed.")
 
     mean_dice = float(np.mean(dice_scores))
     mean_iou = float(np.mean(iou_scores))
 
-    logger.info(f"Mean Dice: {mean_dice:.4f} | Mean IoU: {mean_iou:.4f}")
+    logger.info(f"Test samples evaluated: {num_test_samples}")
+    logger.info(f"Mean Dice: {mean_dice:.6f}")
+    logger.info(f"Mean IoU: {mean_iou:.6f}")
+
     return {
         "mean_dice_coefficient": mean_dice,
         "mean_iou": mean_iou,
         "std_dice": float(np.std(dice_scores)),
         "std_iou": float(np.std(iou_scores)),
-        "num_test_samples": len(images),
+        "num_test_samples": num_test_samples,
     }
 
 

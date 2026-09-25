@@ -13,15 +13,15 @@ OUTPUTS_DIR = ROOT_DIR / "training" / "outputs"
 @dataclass
 class UNetConfig:
     input_size: tuple = (512, 512, 1)
-    batch_size: int = 4
+    batch_size: int = 1
     epochs: int = 100
-    learning_rate: float = 1e-4
+    learning_rate: float = 1e-5
     validation_split: float = 0.2
     early_stopping_patience: int = 15
     reduce_lr_patience: int = 7
     augmentation: bool = True
     checkpoint_path: str = str(MODELS_DIR / "unet" / "unet_pancreas.h5")
-    data_dir: str = str(DATASET_DIR / "pancreas-ct")
+    data_dir: str = str(DATASET_DIR / "processed_tcia")
     images_subdir: str = "images"
     masks_subdir: str = "masks"
 

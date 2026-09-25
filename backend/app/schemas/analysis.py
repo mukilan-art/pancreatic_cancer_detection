@@ -1,9 +1,11 @@
 from typing import Optional, Dict, List, Any
 from pydantic import BaseModel
 
+
 class AnalysisRequest(BaseModel):
     filename: str
     content_type: str
+
 
 class ComponentState(BaseModel):
     model_file_found: bool = False
@@ -12,18 +14,22 @@ class ComponentState(BaseModel):
     inference_success: bool = False
     output_valid: bool = False
 
+
 class ModelStatus(BaseModel):
     unet: ComponentState
     resnet50: ComponentState
     gradcam: ComponentState
+
 
 class PredictionResult(BaseModel):
     prediction: Optional[str] = None
     confidence: Optional[float] = None
     probabilities: Optional[Dict[str, float]] = None
 
+
 class PreprocessingDebug(BaseModel):
     clahe_applied: bool = True
+
 
 class UnetDebug(BaseModel):
     model_file_found: bool = False
@@ -39,10 +45,12 @@ class UnetDebug(BaseModel):
     inference_success: bool = False
     valid: bool = False
 
+
 class RoiDebug(BaseModel):
     bounding_box: List[int] = []
     roi_dimensions: List[int] = []
     valid: bool = False
+
 
 class Resnet50Debug(BaseModel):
     model_file_found: bool = False
@@ -50,11 +58,15 @@ class Resnet50Debug(BaseModel):
     model_trained: bool = False
     input_shape: List[int] = []
     raw_output: Optional[List[float]] = None
-    normal_probability: Optional[float] = None
-    cancer_probability: Optional[float] = None
+
+    # PANORAMA classification probabilities
+    pdac_probability: Optional[float] = None
+    non_pdac_probability: Optional[float] = None
+
     class_mapping: Dict[str, str] = {}
     inference_success: bool = False
     valid: bool = False
+
 
 class GradcamDebug(BaseModel):
     target_layer: str = ""
@@ -63,12 +75,14 @@ class GradcamDebug(BaseModel):
     heatmap_max: float = 0.0
     valid: bool = False
 
+
 class DebugResponse(BaseModel):
     preprocessing: PreprocessingDebug
     unet: UnetDebug
     roi: RoiDebug
     resnet50: Resnet50Debug
     gradcam: GradcamDebug
+
 
 class DiagnosticsInfo(BaseModel):
     input_image_dimensions: str
@@ -80,10 +94,14 @@ class DiagnosticsInfo(BaseModel):
     resnet50_loaded_status: str
     resnet50_input_dimensions: str
     raw_model_output: Optional[List[float]] = None
-    normal_probability: Optional[float] = None
-    pancreatic_cancer_probability: Optional[float] = None
+
+    # PANORAMA classification probabilities
+    pdac_probability: Optional[float] = None
+    non_pdac_probability: Optional[float] = None
+
     predicted_class: str
     gradcam_target_layer: str
+
 
 class AnalysisResponse(BaseModel):
     id: str
@@ -104,11 +122,13 @@ class AnalysisResponse(BaseModel):
     error: Optional[str] = None
     warnings: List[str] = []
 
+
 class HealthResponse(BaseModel):
     status: str
     timestamp: str
     version: str
     model_status: ModelStatus
+
 
 class ReportRequest(BaseModel):
     analysis_id: str
