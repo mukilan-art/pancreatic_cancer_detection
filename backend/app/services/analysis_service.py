@@ -396,10 +396,11 @@ class AnalysisService:
         # 3. RESNET50 CLASSIFICATION
         # =========================================================
 
-        roi = vis_result["roi"]
+        classification_image = preprocessed["original"]
+        roi = classification_image
 
         class_result = (
-            self.resnet_inference.classify(roi)
+            self.resnet_inference.classify(classification_image)
         )
 
         if not class_result["weights_loaded"]:
@@ -421,7 +422,7 @@ class AnalysisService:
 
             gc_result = (
                 self.gradcam.compute_gradcam(
-                    roi
+                    classification_image
                 )
             )
 
@@ -429,7 +430,7 @@ class AnalysisService:
 
                 gradcam_res = (
                     self.gradcam.create_heatmap_visualization(
-                        roi,
+                        classification_image,
                         gc_result["heatmap"],
                     )
                 )
